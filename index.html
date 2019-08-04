@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Tetris</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+  <div id="monitor">
+    <div class="left-side">
+      <div class="next-block">
+        <canvas id="next-canvas" height="120" width="90"></canvas>
+      </div>
+      <div class="left-down">
+        <p class="timer"><span class="timer-min">00</span>:<span class="timer-sec">00</span></p>
+      </div>
+    </div>
+    <canvas id="main-canvas" height="600" width="300"></canvas>
+    <div class="right-side">
+      <div class="right-center">
+        <div class="hightest-score-box">
+          <table>
+            <tr>
+              <th>Hightest score</th>
+            </tr>
+            <tr>
+              <td style="font-size: 24px">0</td>
+            </tr>
+          </table>
+        </div>
+        <div class="level-score-box">
+          <div class="level-box">
+            <table>
+              <tr>
+                <th>Level</th>
+              </tr>
+              <tr>
+                <td class="level" style="font-size: 24px">
+                  <select name="" id="level">
+                    <option value="1000">簡易</option>
+                    <option value="500">正常</option>
+                    <option value="250">困難</option>
+                  </select>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="score-box">
+            <table>
+              <tr>
+                <th>Score</th>
+              </tr>
+              <tr>
+                <td class="score" style="font-size: 24px">0</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="right-down">
+        <button class="main-btn btn">Start Game</button>
+        <button class="teaching-btn btn">How to Play?</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let Tetris = {
+      color: ['#95a5a6', '#3498db', '#f1c40f', '#2980b9', '#f39c12', '#e74c3c', '#8e44ad', '#2ecc71'],
+      init(r, c) {
+        this.canvas = document.getElementById('main-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.nextCanvas = document.getElementById('next-canvas');
+        this.nextCtx = this.nextCanvas.getContext('2d');
+        this.width = 300;
+        this.height = 600;
+        this.r = r;
+        this.c = c;
+        this.status = 'ready';
+        this.score = {
+          el: document.querySelector('.score'),
+          num: 0
+        };
+        this.speed = {
+          el: document.getElementById('level'),
+          num: 0
+        }
+        this.dropped = [];
+        this.next = this.newBlock(undefined, undefined, 2, 1);
+
+        this.showTimer = {
+          el: {
+            min: document.querySelector('.timer-min'),
+            sec: document.querySelector('.timer-sec'),
+          },
+          sec: 0,
+          start() {
+            this.timer = setInterval((() => {
+              this.sec++;
+              this.el.min.innerText = (Math.floor(this.sec / 60)).toString().padStart(2, '0');
+              this.el.sec.innerText = Math.floor(this.sec % 60).toString().padStart(2, '0');
+            }).bind(this.showTimer), 1000)
+          },
+          stop() {
+            clearInterval(this.timer);
+          }
+        }
+
+        document.addEventListener('keydown', e => {
+          if (e.keyCode === 16) {
+            let curIndex = this.cur.index;
+            this.cur = this.newBlock(this.next.index, 1, this.cur.block[2].y, this.cur.block[2].x);
+            this.next = this.newBlock(curIndex, 0, 2, 1);
+            e.preventDefault();
+          } else if (e.keyCode === 32) {
+            while (!this.moveDown());
+            e.preventDefault();
+          } else if (e.keyCode === 37) {
+            Tetris.moveLeft();
+            e.preventDefault();
+          } else if (e.keyCode === 38) {
+            Tetris.rotate();
+            e.preventDefault();
+          } else if (e.keyCode === 39) {
+            Tetris.moveRight();
+            e.preventDefault();
+          } else if (e.keyCode === 40) {
+            Tetris.moveDown();
+            e.preventDefault();
+          }
+        })
+
+        document.querySelector('.main-btn').addEventListener('click', function() {
+          if (Tetris.status === 'ready' || Tetris.status === 'lose') {
+            this.innerText = Tetris.start();
+          } else if (Tetris.status === 'play') {
+            this.innerText = Tetris.stop();
+          } else if (Tetris.status === 'resume') {
+            this.innerText = Tetris.resume();
+          }
+        })
+
+        this.render();
+      },
+      start() {
+        this.status = 'play';
+        this.showTimer.start();
+        this.cur = this.newBlock(this.next.index);
+        this.next = this.newBlock(undefined, undefined, 2, 1);
+        this.speed.num = this.speed.el.options[this.speed.el.selectedIndex].value;
+
+        this.timer = setInterval(() => {
+          this.moveDown();
+        }, this.speed.num);
+
+        return 'Pause Game';
+      },
+      stop() {
+        this.status = 'resume';
+        this.showTimer.stop();
+        clearInterval(this.timer);
+
+        return 'Resume Game';
+      },
+      resume() {
+        this.status = 'play';
+        this.showTimer.start();
+
+        this.timer = setInterval(() => {
+          this.moveDown();
+        }, this.speed.num);
+
+        return 'Pause Game';
+      },
+      newBlock(index = Math.floor(Math.random() * 7), status = 0, r = -1, c = 5) {
+        let block = [
+          [// I
+            [{ x: c, y: r + 1 }, { x: c, y: r }, { x: c, y: r - 1 }, { x: c, y: r - 2 }],
+            [{ x: c - 1, y: r }, { x: c, y: r }, { x: c + 1, y: r }, { x: c + 2, y: r }]
+          ], [// J
+            [{ x: c, y: r - 2 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c - 1, y: r }],
+            [{ x: c + 2, y: r }, { x: c + 1, y: r }, { x: c, y: r }, { x: c, y: r - 1 }],
+            [{ x: c, y: r + 2 }, { x: c, y: r + 1 }, { x: c, y: r }, { x: c + 1, y: r }],
+            [{ x: c - 2, y: r }, { x: c - 1, y: r }, { x: c, y: r }, { x: c, y: r + 1 }]
+          ], [// L
+            [{ x: c, y: r - 2 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c + 1, y: r }],
+            [{ x: c + 2, y: r }, { x: c + 1, y: r }, { x: c, y: r }, { x: c, y: r + 1 }],
+            [{ x: c, y: r + 2 }, { x: c, y: r + 1 }, { x: c, y: r }, { x: c - 1, y: r }],
+            [{ x: c - 2, y: r }, { x: c - 1, y: r }, { x: c, y: r }, { x: c, y: r - 1 }]
+          ], [// O
+            [{ x: c - 1, y: r - 1 }, { x: c - 1, y: r }, { x: c, y: r }, { x: c, y: r - 1 }]
+          ], [// S
+            [{ x: c + 1, y: r - 1 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c - 1, y: r }],
+            [{ x: c - 1, y: r - 2 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c - 1, y: r - 1 }]
+          ], [// T
+            [{ x: c - 1, y: r - 1 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c + 1, y: r - 1 }],
+            [{ x: c + 1, y: r + 1 }, { x: c + 1, y: r }, { x: c, y: r }, { x: c + 1, y: r - 1 }],
+            [{ x: c - 1, y: r + 1 }, { x: c, y: r + 1 }, { x: c, y: r }, { x: c + 1, y: r + 1 }],
+            [{ x: c - 1, y: r - 1 }, { x: c - 1, y: r }, { x: c, y: r }, { x: c - 1, y: r + 1 }]
+          ], [// Z
+            [{ x: c - 1, y: r - 1 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c + 1, y: r }],
+            [{ x: c + 1, y: r - 2 }, { x: c, y: r - 1 }, { x: c, y: r }, { x: c + 1, y: r - 1 }]
+          ],
+        ];
+
+        block.forEach((val, index) => {
+          val.forEach(val1 => {
+            val1.forEach(val2 => {
+              val2['color'] = this.color[index + 1];
+            })
+          })
+        });
+
+        status %= block[index].length;
+
+        return {
+          index,
+          status,
+          block: block[index][status]
+        }
+      },
+      drawBlock(blocks, next = -1) {
+        let gap = 1;
+        let edge = 600 / 20 - gap; // 邊長 = 總長 / 格數 - 間隔；
+
+        if(next >= 0) {
+          for (let w = 0; w < blocks.length; ++w) {
+            let _x = blocks[w].x, _y = blocks[w].y;
+
+            if(next === 3) {
+              _x += 0.5;
+            } else if(next === 2) {
+              _x -= 0.5; _y += 0.25;
+            } else if(next === 1) {
+              _x += 0.5; _y += 0.25;
+            }
+            this.nextCtx.fillStyle = blocks[w].color;
+            this.nextCtx.strokeStyle = '#ecf0f1';
+            this.nextCtx.fillRect((edge + gap) * _x + gap, (edge + gap) * _y + gap, edge, edge);
+            this.nextCtx.strokeRect((edge + gap) * _x + gap, (edge + gap) * _y + gap , edge, edge);
+          }
+        } else {
+          for (let w = 0; w < blocks.length; ++w) {
+            this.ctx.fillStyle = blocks[w].color;
+            this.ctx.strokeStyle = '#ecf0f1';
+            this.ctx.fillRect((edge + gap) * blocks[w].x + gap, (edge + gap) * blocks[w].y + gap, edge, edge);
+            this.ctx.strokeRect((edge + gap) * blocks[w].x + gap, (edge + gap) * blocks[w].y + gap, edge, edge);
+          }
+        }
+      },
+      rotate() {
+        let newB = this.newBlock(this.cur.index, ++this.cur.status, this.cur.block[2].y, this.cur.block[2].x);
+        if (!this.collideToDropped(newB) && !this.collideToDropped(newB, 'left') && !this.collideToDropped(newB, 'right')) {
+          this.cur = newB;
+        }
+      },
+      moveDown() {
+        let _dropped = false;
+
+        if (dropped = this.cur.block.some((val, index, arr) => val.y + 1 >= this.r || this.collideToDropped(val))) {
+
+          this.dropped.push(...this.cur.block);
+
+
+          let lineCount = 0;
+          for (let w = 0; w < this.r; ++w) {
+            if (this.dropped.reduce((acc, val, index) => acc + (val.y === w ? 1 : 0), 0) === this.c) {
+              ++lineCount;
+
+              this.dropped.reduceRight((prev, val, index) => {
+                if (val.y === w) {
+                  this.dropped.splice(index, 1);
+                }
+              }, 0)
+
+              this.dropped.forEach((val) => (w >= val.y) && ++val.y);
+            }
+          }
+
+          this.score.num += [0, 40, 100, 300, 1200][lineCount];
+          this.score.el.innerText = this.score.num;
+
+
+          this.cur = this.newBlock(this.next.index);
+          this.next = this.newBlock(undefined, undefined, 2, 1);
+        }
+
+        this.cur.block.forEach((val) => ++val.y);
+
+        return dropped;
+      },
+      moveLeft() {
+        if (this.cur.block.every((val, index, arr) => val.x > 0 && !this.collideToDropped(val, 'left'))) {
+          this.cur.block.forEach((val) => --val.x);
+        }
+      },
+      moveRight() {
+        if (this.cur.block.every((val, index, arr) => val.x + 1 < this.c && !this.collideToDropped(val, 'right'))) {
+          this.cur.block.forEach((val) => ++val.x);
+        }
+      },
+      collideToDropped(block, direction = 'down') {
+        if (direction === 'down') {
+          return this.dropped.some((val, index, arr) => block.x === val.x && block.y + 1 === val.y);
+        } else if (direction === 'left') {
+          return this.dropped.some((val, index, arr) => block.y === val.y && block.x - 1 === val.x);
+        } else if (direction === 'right') {
+          return this.dropped.some((val, index, arr) => block.y === val.y && block.x + 1 === val.x);
+        }
+      },
+      render() {
+        let data = [];
+
+        for (let w = 0; w < this.r; ++w) {
+          data.push(new Array(this.c).fill(0));
+        }
+
+        let gap = 1;
+        let edge = 600 / 20 - gap; // 邊長 = 總長 / 格數 - 間隔；
+
+        this.ctx.clearRect(0, 0, 500, 600);
+        this.nextCtx.clearRect(0, 0, 90, 120);
+
+        for (let w = 0; w < this.r; ++w) {
+          for (let w1 = 0; w1 < this.c; ++w1) {
+            this.ctx.fillStyle = this.color[data[w][w1]];
+            this.ctx.fillRect((edge + gap) * w1 + gap / 2, (edge + gap) * w + gap / 2, edge, edge);
+          }
+        }
+
+        this.drawBlock(this.next.block, this.next.index);
+
+        if (this.cur) {
+          this.drawBlock(this.cur.block);
+        }
+
+        this.drawBlock(this.dropped);
+
+        requestAnimationFrame(this.render.bind(this));
+
+        return data;
+      },
+    }
+
+    Tetris.init(20, 10);
+  </script>
+</body>
+
+</html>
