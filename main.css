@@ -15,7 +15,7 @@ select {
   width: 100%;
   font-size: 20px;
   padding: 0 0 7px;
-  margin: -10px 0;
+  /* margin: -10px 0; */
   background-color: #34495e;
   cursor: pointer;
   outline: none;
@@ -35,6 +35,8 @@ select {
   overflow: hidden;
   position: relative;
   transition: color .3s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .btn:hover {
@@ -106,7 +108,7 @@ select {
   display: inline-block;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(.9, .9);
+  transform: translate(-50%, -50%) scale(.9);
   background-color: #34495e;
 }
 
@@ -146,8 +148,8 @@ select {
   text-align: center;
 }
 
-.right-center {
-  position: relative;
+.right-center, .left-center {
+  position: absolute;
   top: 50%;
   width: 100%;
   transform: translateY(-50%);
@@ -163,20 +165,50 @@ select {
   margin: 0 auto;
 }
 
-.right-center .level-score-box th {
+.right-center .score-rows-box th {
   padding: 5px 15px;
 }
 
-.level-box, .score-box {
+.score-box, .rows-box {
   display: inline-block;
   margin: 15px 5px;
 }
 
+.level-box {
+  display: inline-block;
+  margin: 0 auto;
+  color: #3498db;
+}
+
+.level-box td {
+  border-color: #3498db;
+  padding: 0 24px;
+}
+
+.level-box th {
+  border-color: #3498db;
+}
+
+.level-box table{
+  border-color: #ecf0f1;
+}
+
+.level-box select {
+  letter-spacing: 8px;
+  color: #3498db;
+}
 
 .left-down, .right-down {
   position: absolute;
   width: 100%;
   bottom: 30px;
+}
+
+.left-center .btn{
+  padding: 5px 6px;
+  width: 60px;
+  margin: 20px auto;
+  font-size: 18px;
 }
 
 .main-btn {

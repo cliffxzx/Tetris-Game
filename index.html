@@ -15,6 +15,10 @@
       <div class="next-block">
         <canvas id="next-canvas" height="120" width="90"></canvas>
       </div>
+      <div class="left-center">
+        <div class="up-font-size btn">＋字體</div>
+        <div class="down-font-size btn">－字體</div>
+      </div>
       <div class="left-down">
         <p class="timer"><span class="timer-min">00</span>:<span class="timer-sec">00</span></p>
       </div>
@@ -32,23 +36,7 @@
             </tr>
           </table>
         </div>
-        <div class="level-score-box">
-          <div class="level-box">
-            <table>
-              <tr>
-                <th>Level</th>
-              </tr>
-              <tr>
-                <td class="level" style="font-size: 24px">
-                  <select name="" id="level">
-                    <option value="1000">簡易</option>
-                    <option value="500">正常</option>
-                    <option value="250">困難</option>
-                  </select>
-                </td>
-              </tr>
-            </table>
-          </div>
+        <div class="score-rows-box">
           <div class="score-box">
             <table>
               <tr>
@@ -59,6 +47,32 @@
               </tr>
             </table>
           </div>
+          <div class="rows-box">
+            <table>
+              <tr>
+                <th>Rows</th>
+              </tr>
+              <tr>
+                <td class="rows" style="font-size: 24px">0</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="level-box">
+          <table>
+            <tr>
+              <th>Level</th>
+            </tr>
+            <tr>
+              <td class="level" style="font-size: 24px">
+                <select name="" id="level">
+                  <option value="1000">簡易</option>
+                  <option value="500">正常</option>
+                  <option value="250">困難</option>
+                </select>
+              </td>
+            </tr>
+          </table>
         </div>
       </div>
       <div class="right-down">
@@ -85,11 +99,16 @@
           el: document.querySelector('.score'),
           num: 0
         };
+        this.rows = {
+          el: document.querySelector('.rows'),
+          num: 0
+        }
         this.speed = {
           el: document.getElementById('level'),
           num: 0
         }
         this.dropped = [];
+        this.scaleSize = .9;
         this.next = this.newBlock(undefined, undefined, 2, 1);
 
         this.showTimer = {
@@ -113,8 +132,13 @@
         document.addEventListener('keydown', e => {
           if (e.keyCode === 16) {
             let curIndex = this.cur.index;
-            this.cur = this.newBlock(this.next.index, 1, this.cur.block[2].y, this.cur.block[2].x);
-            this.next = this.newBlock(curIndex, 0, 2, 1);
+            let newB = this.newBlock(this.next.index, 1, this.cur.block[2].y, this.cur.block[2].x);
+
+            if (newB.block.every((val) => (val.x >= 0 && val.x < this.c) && (val.y >= 0 && val.y < this.r) && (this.dropped.every((_val) => val.x !== _val.x || val.y !== _val.y)))) {
+              this.cur = newB;
+              this.next = this.newBlock(curIndex, 0, 2, 1);
+            }
+
             e.preventDefault();
           } else if (e.keyCode === 32) {
             while (!this.moveDown());
@@ -134,7 +158,7 @@
           }
         })
 
-        document.querySelector('.main-btn').addEventListener('click', function() {
+        document.querySelector('.main-btn').addEventListener('click', function () {
           if (Tetris.status === 'ready' || Tetris.status === 'lose') {
             this.innerText = Tetris.start();
           } else if (Tetris.status === 'play') {
@@ -142,6 +166,24 @@
           } else if (Tetris.status === 'resume') {
             this.innerText = Tetris.resume();
           }
+        })
+
+        document.querySelector('.up-font-size').addEventListener('click', () => {
+          // document.querySelectorAll('*').forEach((el) => {
+          //   if(getComputedStyle(el).fontSize !== '0px') {
+          //     el.style.fontSize = parseInt(el.style.fontSize || getComputedStyle(el).fontSize) + 2 + 'px';
+          //   }
+          // })
+          document.querySelector('#monitor').style.transform = `translate(-50%, -50%) scale(${this.scaleSize += 0.1})`;
+        })
+
+        document.querySelector('.down-font-size').addEventListener('click', () => {
+          // document.querySelectorAll('*').forEach((el) => {
+          //   if(getComputedStyle(el).fontSize !== '0px') {
+          //     el.style.fontSize = Math.max(parseInt(el.style.fontSize || getComputedStyle(el).fontSize) - 2, 0) + 'px';
+          //   }
+          // })
+          document.querySelector('#monitor').style.transform = `translate(-50%, -50%) scale(${this.scaleSize -= 0.1})`;
         })
 
         this.render();
@@ -227,21 +269,21 @@
         let gap = 1;
         let edge = 600 / 20 - gap; // 邊長 = 總長 / 格數 - 間隔；
 
-        if(next >= 0) {
+        if (next >= 0) {
           for (let w = 0; w < blocks.length; ++w) {
             let _x = blocks[w].x, _y = blocks[w].y;
 
-            if(next === 3) {
+            if (next === 3) {
               _x += 0.5;
-            } else if(next === 2) {
+            } else if (next === 2) {
               _x -= 0.5; _y += 0.25;
-            } else if(next === 1) {
+            } else if (next === 1) {
               _x += 0.5; _y += 0.25;
             }
             this.nextCtx.fillStyle = blocks[w].color;
             this.nextCtx.strokeStyle = '#ecf0f1';
             this.nextCtx.fillRect((edge + gap) * _x + gap, (edge + gap) * _y + gap, edge, edge);
-            this.nextCtx.strokeRect((edge + gap) * _x + gap, (edge + gap) * _y + gap , edge, edge);
+            this.nextCtx.strokeRect((edge + gap) * _x + gap, (edge + gap) * _y + gap, edge, edge);
           }
         } else {
           for (let w = 0; w < blocks.length; ++w) {
@@ -253,8 +295,8 @@
         }
       },
       rotate() {
-        let newB = this.newBlock(this.cur.index, ++this.cur.status, this.cur.block[2].y, this.cur.block[2].x);
-        if (!this.collideToDropped(newB) && !this.collideToDropped(newB, 'left') && !this.collideToDropped(newB, 'right')) {
+        let newB = this.newBlock(this.cur.index, this.cur.status + 1, this.cur.block[2].y, this.cur.block[2].x);
+        if (newB.block.every((val) => (val.x >= 0 && val.x < this.c) && (val.y > -3 && val.y < this.r) && (this.dropped.every((_val) => val.x !== _val.x || val.y !== _val.y)))) {
           this.cur = newB;
         }
       },
@@ -281,8 +323,8 @@
             }
           }
 
-          this.score.num += [0, 40, 100, 300, 1200][lineCount];
-          this.score.el.innerText = this.score.num;
+          this.score.el.innerText = (this.score.num += [0, 40, 100, 300, 1200][lineCount]);
+          this.rows.el.innerText = (this.rows.num += lineCount);
 
 
           this.cur = this.newBlock(this.next.index);
