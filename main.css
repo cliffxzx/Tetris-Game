@@ -104,7 +104,7 @@ select {
 #monitor{
   white-space: nowrap;
   font-size: 0;
-  position: relative;
+  position: absolute;
   display: inline-block;
   top: 50%;
   left: 50%;
